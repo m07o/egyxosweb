@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build && npx @opennextjs/cloudflare",
+    "build": "next build --webpack && npx @opennextjs/cloudflare",
     "build:cf": "npx @opennextjs/cloudflare build",
     "deploy": "npx @opennextjs/cloudflare deploy",
     "deploy:preview": "npx wrangler deploy --env preview",

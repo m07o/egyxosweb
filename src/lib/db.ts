@@ -1,13 +1,26 @@
-import { PrismaClient } from '@prisma/client'
+// ============================================================
+// src/lib/db.ts - Prisma Client لـ PostgreSQL (Supabase)
+// ============================================================
+// تم تحسينه ليعمل مع Connection Pooling على Cloudflare
+// ═══════════════════════════════════════════════════════════
+
+import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
+  prisma: PrismaClient | undefined;
+};
 
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['error'],
-  })
+    // تقليل الـ logs في الإنتاج
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "warn", "error"]
+        : ["error"],
+  });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// في التطوير: نحافظ على نفس الـ instance
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}

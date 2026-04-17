@@ -1,0 +1,209 @@
+// ============================================================
+// egyxosweb - Prisma Schema (PostgreSQL / Supabase)
+// ============================================================
+// تم تعديل هذا الـ Schema بالكامل ليعمل مع PostgreSQL على Supabase.
+// جميع الـ IDs من نوع String (cuid) متوافقة مع PostgreSQL.
+// التواريخ تستخدم DateTime مع timezone تلقائي من Supabase (UTC).
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // للاتصال المباشر من السكرابر (Connection Pooling bypass)
+}
+
+// ============================================================
+// جدول المستخدمين (Admin)
+// ============================================================
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   @db.Text // bcrypt hash
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+// ============================================================
+// جدول الأفلام المستخرجة
+// ============================================================
+model Movie {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(500)
+  originalTitle String? @db.VarChar(500) @map("original_title")
+  slug        String   @unique @db.VarChar(600)
+  overview    String?  @db.Text
+  posterUrl   String?  @db.Text @map("poster_url")
+  backdropUrl String?  @db.Text @map("backdrop_url")
+  releaseYear Int?     @map("release_year")
+  quality     String   @default("720p") @db.VarChar(20)
+  rating      Float?   @default(0)
+  mediaType   String   @default("movie") @db.VarChar(20) // movie | series | anime
+  site        String   @db.VarChar(100) // مصدر الاستخراج (wecima, mycima, etc.)
+  siteUrl     String?  @db.Text @map("site_url") // رابط الصفحة الأصلية
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // علاقات
+  links Link[]
+
+  @@index([mediaType])
+  @@index([site])
+  @@index([isPublished])
+  @@index([createdAt])
+  @@map("movies")
+}
+
+// ============================================================
+// جدول روابط المشاهدة والتحميل
+// ============================================================
+model Link {
+  id         String   @id @default(cuid())
+  movieId    String   @map("movie_id")
+  movie      Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  serverName String   @default("Server 1") @db.VarChar(100) @map("server_name")
+  linkType   String   @default("stream") @db.VarChar(20) // stream | download
+  quality    String   @default("720p") @db.VarChar(20)
+  url        String   @db.Text
+  size       String?  @db.VarChar(50) // حجم الملف مثل 1.5 GB
+  season     Int?     // رقم الموسم (للمسلسلات)
+  episode    Int?     // رقم الحلقة (للمسلسلات)
+  isActive   Boolean  @default(true) @map("is_active")
+  language   String?  @default("ar") @db.VarChar(10) // ar | en | ja
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([movieId])
+  @@index([linkType])
+  @@index([quality])
+  @@index([isActive])
+  @@map("links")
+}
+
+// ============================================================
+// جدول إعدادات السكرابر
+// ============================================================
+model ScraperConfig {
+  id        String    @id @default(cuid())
+  siteId    String    @unique @map("site_id") @db.VarChar(100) // wecima, mycima, etc.
+  siteName  String    @db.VarChar(200) @map("site_name")
+  baseUrl   String    @db.Text @map("base_url")
+  enabled   Boolean   @default(true)
+  cronExpr  String?   @db.VarChar(100) @map("cron_expr") // تعبير cron للجدولة
+  maxPages  Int       @default(5) @map("max_pages") // عدد صفحات الاستخراج
+  delayMs   Int       @default(2000) @map("delay_ms") // التأخير بين الطلبات (ms)
+  lastRunAt DateTime? @map("last_run_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("scraper_configs")
+}
+
+// ============================================================
+// جدول سجل عمليات السكرابر
+// ============================================================
+model ScrapeLog {
+  id           String    @id @default(cuid())
+  configId     String?   @map("config_id")
+  site         String    @db.VarChar(100)
+  status       String    @default("pending") @db.VarChar(20) // pending | running | success | error
+  pagesScraped Int       @default(0) @map("pages_scraped")
+  moviesFound  Int       @default(0) @map("movies_found")
+  linksFound   Int       @default(0) @map("links_found")
+  linksNew     Int       @default(0) @map("links_new") // روابط جديدة فعلاً
+  errorMessage String?   @db.Text @map("error_message")
+  durationMs   Int?      @map("duration_ms") // مدة العملية بالميلي ثانية
+  startedAt    DateTime  @default(now()) @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+
+  @@index([site])
+  @@index([status])
+  @@index([startedAt])
+  @@map("scrape_logs")
+}
+
+// ============================================================
+// جدول المستخدمين (للمستقبل - تسجيل عضويات)
+// ============================================================
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique @db.VarChar(255)
+  password      String    @db.Text
+  name          String?   @db.VarChar(200)
+  avatarUrl     String?   @db.Text @map("avatar_url") @default("https://placehold.co/100x100/1a1a2e/10b981?text=U")
+  role          String    @default("user") @db.VarChar(20) // user | admin | moderator
+  isBanned      Boolean   @default(false) @map("is_banned")
+  emailVerified DateTime? @map("email_verified_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ============================================================
+// إعدادات الموقع (Site Settings)
+// ============================================================
+model SiteSettings {
+  id              String   @id @default("main")
+  siteName        String   @default("سينما بلس") @db.VarChar(200) @map("site_name")
+  siteDescription String   @default("مشاهدة وتحميل أفلام ومسلسلات") @db.Text @map("site_description")
+  logoUrl         String   @default("") @db.Text @map("logo_url")
+  heroAutoPlay    Boolean  @default(true) @map("hero_auto_play")
+  heroInterval    Int      @default(7) @map("hero_interval")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+// ============================================================
+// المحتوى المخصص (Custom Content)
+// ============================================================
+model CustomContent {
+  id          String   @id @default(cuid())
+  tmdbId      Int      @map("tmdb_id")
+  mediaType   String   @db.VarChar(20) @map("media_type")
+  title       String   @db.VarChar(500)
+  arabicTitle String   @db.VarChar(500) @map("arabic_title")
+  quality     String   @default("1080p") @db.VarChar(20)
+  tags        String   @default("[]") @db.Text
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("custom_content")
+}
+
+// ============================================================
+// سيرفرات البث (Streaming Servers)
+// ============================================================
+model StreamingServer {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(200)
+  url       String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("streaming_servers")
+}
+
+// ============================================================
+// رسائل التواصل (Contact Messages)
+// ============================================================
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(200)
+  email     String   @db.VarChar(255)
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contact_messages")
+}

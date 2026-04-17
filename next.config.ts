@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  output: "standalone",
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  reactStrictMode: false,
-=======
 // ============================================================
 // next.config.ts - إعدادات Next.js متوافقة مع OpenNext + Cloudflare
 // ============================================================
@@ -108,7 +98,6 @@ const nextConfig: NextConfig = {
   // ═══════════════════════════════════════════════════════════
   // لا تستخدم ISR على Cloudflare
   // استخدم static أو dynamic بدلاً من ذلك
->>>>>>> origin/master
 };
 
 export default nextConfig;

@@ -1,0 +1,23 @@
+[build]
+  command = "bun run build:cf"
+  publish = ".open-next/server"
+
+[build.environment]
+  NODE_VERSION = "22"
+  BUN_VERSION = "1"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@prisma/client"]
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[dev]
+  command = "bun run dev"
+  port = 3000

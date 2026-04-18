@@ -2,8 +2,8 @@
 // src/lib/rate-limiter.ts
 // نظام تقييد الطلبات (Rate Limiter) + حماية من Brute Force
 // ============================================================
-// يعمل في الذاكرة (In-Memory) مع تنظيف تلقائي
-// مناسب لبيئة Serverless و Cloudflare Workers
+// متوافق مع Cloudflare Workers — لا يستخدم setInterval أو process
+// التنظيف يتم بشكل "lazy" عند كل طلب
 // ============================================================
 
 interface RateLimitEntry {
@@ -22,17 +22,31 @@ interface BruteForceEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 const bruteForceStore = new Map<string, BruteForceEntry>();
 
-// تنظيف تلقائي كل 5 دقائق
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
-setInterval(() => {
+// الحد الأقصى لحجم الـ Store قبل تنظيف كامل
+const MAX_STORE_SIZE = 1000;
+
+/**
+ * تنظيف "lazy" — يتم استدعاؤها عند كل طلب
+ * تزيل الإدخالات المنتهية الصلاحية لمنع تسرب الذاكرة
+ */
+function lazyCleanup(): void {
   const now = Date.now();
+
+  // إذا الـ store صغير، لا حاجة للتنظيف
+  if (rateLimitStore.size < MAX_STORE_SIZE && bruteForceStore.size < MAX_STORE_SIZE) {
+    return;
+  }
+
+  // تنظيف rateLimitStore
   for (const [key, entry] of rateLimitStore) {
     if (entry.resetAt <= now) rateLimitStore.delete(key);
   }
+
+  // تنظيف bruteForceStore
   for (const [key, entry] of bruteForceStore) {
     if (entry.lockedUntil <= now) bruteForceStore.delete(key);
   }
-}, CLEANUP_INTERVAL_MS).unref();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Rate Limiter - لتقييد عدد الطلبات
@@ -50,6 +64,7 @@ export function checkRateLimit(
   key: string,
   config: RateLimitConfig
 ): { limited: boolean; remaining: number; resetAt: number } {
+  lazyCleanup();
   const now = Date.now();
 
   const existing = rateLimitStore.get(key);
@@ -99,6 +114,7 @@ export function recordFailedLogin(
   key: string,
   config: BruteForceConfig
 ): { locked: boolean; remainingAttempts: number; lockedUntil: number | null } {
+  lazyCleanup();
   const now = Date.now();
   const existing = bruteForceStore.get(key);
 
@@ -152,6 +168,7 @@ export function recordSuccessfulLogin(key: string): void {
  * فحص هل الـ IP محظور حالياً
  */
 export function isLockedOut(key: string): { locked: boolean; lockedUntil: number | null } {
+  lazyCleanup();
   const existing = bruteForceStore.get(key);
   if (!existing) return { locked: false, lockedUntil: null };
 
@@ -169,15 +186,15 @@ export function isLockedOut(key: string): { locked: boolean; lockedUntil: number
  * استخراج IP من الطلب
  */
 export function getClientIp(request: Request): string {
+  // try CF-Connecting-IP (Cloudflare)
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp;
+
   // try X-Forwarded-For (Cloudflare / Nginx)
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0].trim();
   }
-
-  // try CF-Connecting-IP (Cloudflare)
-  const cfIp = request.headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp;
 
   // try X-Real-IP
   const realIp = request.headers.get("x-real-ip");

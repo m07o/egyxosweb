@@ -158,7 +158,7 @@ export default function HomePage() {
                 ) : 'دخول'}
               </Button>
             </form>
-            <p className="text-center mt-4 text-xs text-slate-600">admin / admin123</p>
+
           </div>
         </div>
       )}

@@ -1,22 +1,20 @@
 // ============================================================
-// src/lib/auth.ts — NextAuth Config (محمّي)
+// src/lib/auth.ts — NextAuth Config (محمّي + متوافق مع Cloudflare)
 // ============================================================
 // ترقيعات الأمان المُطبّقة:
 //
 // 1. NEXTAUTH_SECRET مطلوب — لا يوجد fallback.
-//    إذا لم يُعرّف المتغير، يرمي Error ويمنع التشغيل.
+//    يتم التحقق في runtime (عند أول طلب)، وليس في module evaluation.
+//    هذا يسمح بعمل Build بدون إعداد متغيرات البيئة.
 //
 // 2. لا توجد بيانات دخول افتراضية (hardcoded).
-//    Admin يُنشأ عبر Seed Script بقراءة:
-//      - ADMIN_USERNAME (يجب أن يكون 3 أحرف على الأقل)
-//      - ADMIN_PASSWORD (يجب أن يكون 8 أحرف على الأقل)
+//    Admin يُنشأ عبر Seed Script.
 //
 // 3. Brute Force Protection:
 //    - 5 محاولات فشل متتالية = حظر 15 دقيقة من نفس الـ IP.
-//    - يُستخدم In-Memory store مع تنظيف تلقائي.
-//    - نجاح تسجيل الدخول يمسح عداد المحاولات.
+//    - In-Memory store مع lazy cleanup (متوافق مع Workers).
 //
-// 4. تسجيل محاولات الدخول في console (يمكن ربطه بـ SIEM).
+// 4. تسجيل محاولات الدخول في console.
 // ============================================================
 
 import { NextAuthOptions } from "next-auth";
@@ -31,14 +29,17 @@ import {
 } from "./rate-limiter";
 
 // ═══════════════════════════════════════════════════════════
-// 1. التحقق من NEXTAUTH_SECRET — مطلوب، لا يوجد fallback
+// 1. التحقق من NEXTAUTH_SECRET — في runtime، ليس build time
 // ═══════════════════════════════════════════════════════════
-const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-if (!NEXTAUTH_SECRET || NEXTAUTH_SECRET.length < 32) {
-  throw new Error(
-    "[SECURITY] NEXTAUTH_SECRET is required and must be at least 32 characters. " +
-    "Set it in your .env file. Generate one with: openssl rand -base64 48"
-  );
+function getSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "[SECURITY] NEXTAUTH_SECRET is required and must be at least 32 characters. " +
+      "Generate one with: openssl rand -base64 48"
+    );
+  }
+  return secret;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -72,7 +73,6 @@ export const authOptions: NextAuthOptions = {
           console.warn(
             `[SECURITY] Blocked login attempt from IP ${clientIp} — locked for ${remainingMin} more minutes`
           );
-          // نرمي خطأ مخصص سيتم التقاطه في login page
           throw new Error(
             `تم حظر تسجيل الدخول بسبب محاولات متكررة. حاول بعد ${remainingMin} دقيقة.`
           );
@@ -84,8 +84,6 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!admin) {
-          // لا تُعلِم المهاجم أن المستخدم غير موجود
-          // سجّل المحاولة الفاشلة فقط
           const bf = recordFailedLogin(clientIp, {
             maxAttempts: BRUTE_FORCE_MAX_ATTEMPTS,
             lockoutMs: BRUTE_FORCE_LOCKOUT_MS,
@@ -155,7 +153,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   // ═══════════════════════════════════════════════════════════
-  // 3. Secret — مطلوب، لا يوجد fallback
+  // Secret — يتم قراءته في runtime
   // ═══════════════════════════════════════════════════════════
-  secret: NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
 };

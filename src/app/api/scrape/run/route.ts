@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { site } = body
     if (!site || typeof site !== 'string') return NextResponse.json({ error: 'Site required' }, { status: 400 })
+
     const validSites = ['wecima', 'dramacafe', 'cimanow', 'arabseed']
     if (!validSites.includes(site)) return NextResponse.json({ error: `Invalid site: ${validSites.join(', ')}` }, { status: 400 })
 
@@ -64,4 +65,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: err.message || 'Failed to fetch logs' }, { status: 500 })
   }
 }
-

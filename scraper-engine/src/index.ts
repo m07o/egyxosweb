@@ -41,7 +41,6 @@ async function createLog(site: string): Promise<string> {
     data: {
       site,
       status: "running",
-      message: "بدأ استخراج المحتوى...",
     },
   });
   return log.id;
@@ -84,21 +83,19 @@ async function saveMovieToDb(movie: ScrapedMovie): Promise<number> {
       links: {
         create: [
           // روابط المشاهدة (Servers)
-          ...movie.servers.map((s, i) => ({
+          ...movie.servers.map((s) => ({
             serverName: s.name,
             linkType: "stream",
             quality: s.quality,
             url: s.url,
-            order: i,
           })),
           // روابط التحميل
-          ...movie.downloadLinks.map((d, i) => ({
-            serverName: `Download ${i + 1}`,
+          ...movie.downloadLinks.map((d) => ({
+            serverName: `Download`,
             linkType: "download",
             quality: d.quality,
             url: d.url,
             size: d.size || null,
-            order: i,
           })),
         ],
       },
@@ -114,22 +111,20 @@ async function saveMovieToDb(movie: ScrapedMovie): Promise<number> {
   // إذا الفيلم موجود مسبقاً، نضيف الروابط الجديدة فقط
   if (dbMovie) {
     const allNewLinks = [
-      ...movie.servers.map((s, i) => ({
+      ...movie.servers.map((s) => ({
         movieId: dbMovie.id,
         serverName: s.name,
         linkType: "stream" as const,
         quality: s.quality,
         url: s.url,
-        order: i,
       })),
-      ...movie.downloadLinks.map((d, i) => ({
+      ...movie.downloadLinks.map((d) => ({
         movieId: dbMovie.id,
-        serverName: `Download ${i + 1}`,
+        serverName: `Download`,
         linkType: "download" as const,
         quality: d.quality,
         url: d.url,
         size: d.size || null,
-        order: i,
       })),
     ];
 
@@ -217,7 +212,6 @@ async function runFullScrape(site: string, maxPages: number) {
       linksNew: totalNewLinks,
       durationMs,
       finishedAt: new Date(),
-      message: `تم بنجاح: ${totalMovies} فيلم، ${totalLinks} رابط (${totalNewLinks} جديد)`,
     });
 
     console.log("\n═══════════════════════════════════════════════════");

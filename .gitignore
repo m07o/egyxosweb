@@ -106,3 +106,18 @@ next-env.d.ts
 /skills/
 test/
 prompt/
+
+# ═══════════════════════════════════════════════════════════
+# Next.js & Open-Next
+# ═══════════════════════════════════════════════════════════
+/.open-next/
+
+# ═══════════════════════════════════════════════════════════
+# Temporary & Project Artifacts
+# ═══════════════════════════════════════════════════════════
+.zscripts/
+upload/
+cinema-plus-review/
+mini-services/
+DEPLOY-GUIDE.sh
+worklog.md

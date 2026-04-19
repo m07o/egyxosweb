@@ -109,17 +109,22 @@ model ScraperConfig {
 // جدول سجل عمليات السكرابر
 // ============================================================
 model ScrapeLog {
-  id        String   @id @default(cuid())
-  site      String   @db.VarChar(100)
-  status    String   @default("pending") @db.VarChar(20) // pending | success | error
-  linksCount Int    @default(0) @map("links_count")
-  message   String?  @db.Text
-  duration  Int?     // مدة العملية بالميلي ثانية
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String    @id @default(cuid())
+  configId     String?   @map("config_id")
+  site         String    @db.VarChar(100)
+  status       String    @default("pending") @db.VarChar(20) // pending | success | error
+  pagesScraped Int       @default(0) @map("pages_scraped")
+  moviesFound  Int       @default(0) @map("movies_found")
+  linksFound   Int       @default(0) @map("links_found")
+  linksNew     Int       @default(0) @map("links_new")
+  errorMessage String?   @db.Text @map("error_message")
+  durationMs   Int?      @map("duration_ms")
+  startedAt    DateTime  @default(now()) @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
 
   @@index([site])
   @@index([status])
-  @@index([createdAt])
+  @@index([startedAt])
   @@map("scrape_logs")
 }
 

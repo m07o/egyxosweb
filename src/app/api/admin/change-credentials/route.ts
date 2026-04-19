@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
   try {
+    // ✅ Auth check - only admins can change credentials
+    const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET })
+    if (!token || !(token as any).isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { currentPassword, newUsername, newPassword } = body
 

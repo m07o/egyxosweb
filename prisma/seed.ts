@@ -25,48 +25,53 @@ async function main() {
   console.log("Seeding database...");
 
   // ═══════════════════════════════════════════════════════════
-  // 1. إنشاء حساب المدير من Environment Variables
+  // 1. إنشاء حساب المدير من Environment Variables (اختياري إذا كان موجوداً)
   // ═══════════════════════════════════════════════════════════
-  const adminUsername = process.env.ADMIN_USERNAME;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const existingAdmin = await prisma.admin.findFirst();
 
-  if (!adminUsername || adminUsername.length < 3) {
-    throw new Error(
-      "[SECURITY] ADMIN_USERNAME is required (min 3 characters). " +
-      "Usage: ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong_pass> npx prisma db seed"
-    );
+  if (!existingAdmin) {
+    // فقط اطلب env vars إذا لم يكن هناك admin
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminUsername || adminUsername.length < 3) {
+      throw new Error(
+        "[SECURITY] ADMIN_USERNAME is required (min 3 characters). " +
+        "Usage: ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong_pass> npx prisma db seed"
+      );
+    }
+
+    if (!adminPassword || adminPassword.length < 8) {
+      throw new Error(
+        "[SECURITY] ADMIN_PASSWORD is required (min 8 characters). " +
+        "Usage: ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong_pass> npx prisma db seed"
+      );
+    }
+
+    // تحقق من قوة كلمة المرور
+    const hasUppercase = /[A-Z]/.test(adminPassword);
+    const hasLowercase = /[a-z]/.test(adminPassword);
+    const hasNumber = /[0-9]/.test(adminPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(adminPassword);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+      console.warn(
+        "[SECURITY] ADMIN_PASSWORD is weak. " +
+        "It should contain uppercase, lowercase, numbers, and special characters."
+      );
+    }
+
+    const admin = await prisma.admin.create({
+      data: {
+        username: adminUsername,
+        password: await hash(adminPassword, 12),
+      },
+    });
+
+    console.log(`✅ Admin created: ${admin.username}`);
+  } else {
+    console.log(`✅ Admin already exists: ${existingAdmin.username} - skipping creation`);
   }
-
-  if (!adminPassword || adminPassword.length < 8) {
-    throw new Error(
-      "[SECURITY] ADMIN_PASSWORD is required (min 8 characters). " +
-      "Usage: ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong_pass> npx prisma db seed"
-    );
-  }
-
-  // تحقق من قوة كلمة المرور
-  const hasUppercase = /[A-Z]/.test(adminPassword);
-  const hasLowercase = /[a-z]/.test(adminPassword);
-  const hasNumber = /[0-9]/.test(adminPassword);
-  const hasSpecial = /[^A-Za-z0-9]/.test(adminPassword);
-
-  if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
-    console.warn(
-      "[SECURITY] ADMIN_PASSWORD is weak. " +
-      "It should contain uppercase, lowercase, numbers, and special characters."
-    );
-  }
-
-  const admin = await prisma.admin.upsert({
-    where: { username: adminUsername },
-    update: {},
-    create: {
-      username: adminUsername,
-      password: await hash(adminPassword, 12),
-    },
-  });
-
-  console.log(`Admin created: ${admin.username}`);
 
   // ═══════════════════════════════════════════════════════════
   // 2. إعدادات الموقع

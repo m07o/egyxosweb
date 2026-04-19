@@ -43,6 +43,8 @@ dist
 .env.development.local
 .env.test.local
 .env.production.local
+scraper-engine/.env
+scraper-python/.env
 # اسمح بملف .env.example فقط (يحتوي على أسماء المتغيرات بدون قيم)
 !.env.example
 

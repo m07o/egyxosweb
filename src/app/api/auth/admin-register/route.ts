@@ -1,25 +1,26 @@
 // ============================================================
 // POST /api/auth/admin-register — تسجيل مسؤول جديد
-// يتطلب Admin Master Password من المتغيرات البيئية
+// يتطلب المصادقة كمسؤول موجود
 // ============================================================
 
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import { db } from "@/lib/db";
 import { hash } from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password, adminPassword, email } = await request.json();
-
-    // Verify admin master password
-    const masterPassword = process.env.ADMIN_MASTER_PASSWORD;
-    if (!masterPassword || adminPassword !== masterPassword) {
-      console.warn(`[SECURITY] Failed admin registration attempt with wrong master password`);
+    // ✅ Auth check - only existing admins can create new admins
+    const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
+    if (!token || !(token as any).isAdmin) {
+      console.warn(`[SECURITY] Unauthorized admin registration attempt`);
       return NextResponse.json(
-        { error: "كلمة مرور الأدمن غير صحيحة" },
-        { status: 403 }
+        { error: "Unauthorized - Admins only" },
+        { status: 401 }
       );
     }
+
+    const { username, password, email } = await request.json();
 
     // Validation
     if (!username || !password || password.length < 6) {

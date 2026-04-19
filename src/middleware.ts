@@ -54,9 +54,27 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
+
+    // Check admin role for dashboard and admin API
+    if ((pathname.startsWith("/dashboard") || pathname.startsWith("/api/admin") || pathname.startsWith("/api/scrapers")) && !(token as any).isAdmin) {
+      if (pathname.startsWith("/dashboard")) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+      return NextResponse.json({ error: "غير مصرح - أدمن فقط" }, { status: 403 });
+    }
   }
 
-  // 3. إضافة Security Headers
+  // 3. حماية صفحة Profile
+  if (pathname === "/profile") {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
   const response = NextResponse.next();
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -74,6 +92,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/profile",
     "/api/scrapers/:path*",
     "/api/admin/:path*",
     "/api/auth/:path*",

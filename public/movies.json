@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-04-18T00:00:00.000000",
+  "source": "wecima.bar",
+  "totalMovies": 0,
+  "movies": [],
+  "errors": ["No data yet. Run scraper: npm run scraper:py"]
+}

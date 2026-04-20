@@ -166,7 +166,11 @@ export abstract class BaseScraper {
 
       if (!title || !url) continue
       if (isAdLink(url)) continue
-      if (!url.includes('/watch/') && !url.includes('/episode') && !url.includes('/download/') && !url.includes('/movie') && !url.includes('/series') && !url.includes('/anime')) continue
+      // Accept content URLs (watch, episode, movie, series, anime, or Arabic slugs)
+      const hasContentPath = url.includes('/watch/') || url.includes('/episode') || 
+        url.includes('/download/') || url.includes('/movie') || url.includes('/series') || 
+        url.includes('/anime') || /[أ-ي]/.test(url) // Arabic characters in URL
+      if (!hasContentPath) continue
 
       const key = title + url
       if (seen.has(key)) continue

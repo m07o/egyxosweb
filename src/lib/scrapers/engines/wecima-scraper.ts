@@ -16,24 +16,41 @@ export class WecimaScraper extends BaseScraper {
     const seen = new Set<string>()
 
     $('.GridItem').each(function (this: cheerio.Element) {
-      const $el = $(this)
-      const $link = $el.find('.Thumb--GridItem a').first() || $el.find('a').first()
+      const el = $(this)
+      const a = el.find('a').first()
+      const href = a.attr('href') || ''
 
-      const href = $link.attr('href') || ''
-      const title = $link.attr('title') || $link.find('[class*=Title]').first().text().trim() || $el.find('h2, h3').first().text().trim()
-      const quality = $el.find('[class*=quality], [class*=Quality]').first().text().trim()
+      // Title from <strong> tag (the real Arabic title)
+      const title = a.find('strong').text().trim()
 
-      if (href && title && !seen.has(href)) {
+      // Image from CSS custom property data-lazy-style
+      let image = ''
+      const bgSpan = a.find('.BG--GridItem').first()
+      const lazyStyle = bgSpan.attr('data-lazy-style') || ''
+      const imgMatch = lazyStyle.match(/url\(([^)]+)\)/)
+      if (imgMatch) image = imgMatch[1]
+
+      // Fallback: try img tags
+      if (!image) {
+        const img = a.find('img').first()
+        image = img.attr('data-src') || img.attr('src') || ''
+      }
+
+      // Quality
+      const quality = title.match(/(4K|1080p|720p|480p|BluRay|WEB-DL|WEBRip|HDRip)/i)?.[1] || ''
+
+      if (title && href && !seen.has(href)) {
         seen.add(href)
         items.push({
           title,
-          url: href.startsWith('http') ? href : `https://wecima.bar${href}`,
+          url: href.startsWith('http') ? href : 'https://wecima.bar' + href,
           quality,
+          imageUrl: image,
         })
       }
     })
 
-    this.log(`Parsed ${seen.size} unique items from Wecima`)
+    this.log('Parsed ' + seen.size + ' unique items from Wecima')
     return items
   }
 }

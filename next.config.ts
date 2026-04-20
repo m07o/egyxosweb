@@ -1,44 +1,19 @@
-// ============================================================
-// next.config.ts - إعدادات Next.js متوافقة مع OpenNext + Cloudflare
-// ============================================================
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ═══════════════════════════════════════════════════════════
-  // تعطيل Turbopack كلياً - يستخدم SWC بدلاً منه
-  // Turbopack لا يدعم الأحرف العربية في المسارات
-  // ═══════════════════════════════════════════════════════════
-  swcMinify: true,
-
-  // ═══════════════════════════════════════════════════════════
-  // لا تستخدم output: "standalone" مع Cloudflare
-  // OpenNext يتعامل مع الـ build output بشكل خاص
-  // ═══════════════════════════════════════════════════════════
-
-  // ═══════════════════════════════════════════════════════════
-  // إعدادات TypeScript
-  // ═══════════════════════════════════════════════════════════
   typescript: {
     ignoreBuildErrors: true,
   },
 
   reactStrictMode: false,
 
-  // ═══════════════════════════════════════════════════════════
-  // experimental features مطلوبة لـ OpenNext
-  // ═══════════════════════════════════════════════════════════
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
     },
   },
 
-  // ═══════════════════════════════════════════════════════════
-  // إعدادات الصور - مهمة جداً على Cloudflare
-  // ═══════════════════════════════════════════════════════════
   images: {
-    // Cloudflare Workers لا يدعم image optimization المحلي
     unoptimized: true,
     remotePatterns: [
       {
@@ -49,12 +24,41 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "placehold.co",
       },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+      {
+        protocol: "https",
+        hostname: "a.ltrbxd.com",
+      },
+      {
+        protocol: "https",
+        hostname: "s.ltrbxd.com",
+      },
+      {
+        protocol: "https",
+        hostname: "vidsrc.xyz",
+      },
+      {
+        protocol: "https",
+        hostname: "vidsrc.to",
+      },
+      {
+        protocol: "https",
+        hostname: "multiembed.mov",
+      },
+      {
+        protocol: "https",
+        hostname: "moviesapi.club",
+      },
+      {
+        protocol: "https",
+        hostname: "embed.su",
+      },
     ],
   },
 
-  // ═══════════════════════════════════════════════════════════
-  // إعدادات Headers (CORS و Security)
-  // ═══════════════════════════════════════════════════════════
   async headers() {
     return [
       {
@@ -76,11 +80,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-
-  // ═══════════════════════════════════════════════════════════
-  // Cloudflare Workers — لا توجد إعدادات webpack خاصة
-  // bcryptjs هي Pure JS وتعمل مباشرة على Workers
-  // ═══════════════════════════════════════════════════════════
 };
 
 export default nextConfig;

@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Cairo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "سينما بلس",
-  description: "منصة إدارة روابط المشاهدة والتحميل",
+  title: "سينما بلس - CinemaPlus",
+  description: "مشاهدة وتحميل أفلام ومسلسلات بجودة عالية",
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
 };
 
@@ -24,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className="dark" suppressHydrationWarning>
-      <body className={`${geistSans.variable} antialiased bg-[#0a0a0f] text-foreground`}>
+      <body className={`${cairo.variable} antialiased bg-[#0a0a0f] text-foreground`} style={{ fontFamily: 'var(--font-cairo), sans-serif' }}>
         <Providers>
           {children}
           <Toaster
@@ -37,6 +38,7 @@ export default function RootLayout({
                 background: '#141820',
                 border: '1px solid rgba(255,255,255,0.06)',
                 color: '#e2e8f0',
+                fontFamily: 'var(--font-cairo), sans-serif',
               },
             }}
           />
